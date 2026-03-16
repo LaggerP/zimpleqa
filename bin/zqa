@@ -1,0 +1,12 @@
+#!/usr/bin/env node
+
+// zimpleQA wrapper script
+// This allows running zimpleQA with the 'zqa' command
+
+const path = require('path');
+
+// Get the path to the global zimpleqa package
+const zimpleqaPath = path.join(__dirname, 'node_modules', 'zimpleqa', 'dist', 'cli', 'index.js');
+
+// Require and execute
+require(zimpleqaPath);
