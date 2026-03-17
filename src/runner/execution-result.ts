@@ -12,6 +12,8 @@ export interface TestResult {
   duration: number;
   error?: string;
   timestamp: Date;
+  screenshotPaths?: string[];
+  cacheStatus?: 'hit' | 'miss';
 }
 
 export interface StepResult {

@@ -1,5 +1,6 @@
 /**
  * Markdown parser for test files
+ * Supports v0.1.0 and v0.2.0 template formats with backward compatibility
  */
 
 import { marked } from 'marked';
@@ -31,16 +32,28 @@ export class MarkdownParser {
       };
 
       let currentSection: string = '';
+      let isV0_2_0 = false;
+      let metadata: any = {};
 
       for (const token of tokens) {
         if (token.type === 'heading') {
+          // Extract title from main heading (# Test: Title)
+          if (token.depth === 1 && token.text.toLowerCase().startsWith('test:')) {
+            test.title = token.text.substring(5).trim();
+          }
+
           currentSection = token.text.toLowerCase().replace(/\s+/g, '-');
+
+          if (token.text.toLowerCase() === 'metadata') {
+            isV0_2_0 = true;
+          }
           continue;
         }
 
         if (token.type === 'list') {
           for (const item of token.items || []) {
-            if (currentSection === 'pasos-de-prueba' || currentSection === 'steps') {
+            if (currentSection === 'steps') {
+              // Try to match numbered list format first
               const stepMatch = item.text.match(/^(\d+)\.\s*(.+)$/);
               if (stepMatch) {
                 const [, number, description] = stepMatch;
@@ -48,8 +61,15 @@ export class MarkdownParser {
                   number: parseInt(number, 10),
                   description: description.trim()
                 });
+              } else {
+                // If no number, auto-increment from existing steps
+                const stepNumber = test.steps.length + 1;
+                test.steps.push({
+                  number: stepNumber,
+                  description: item.text.trim()
+                });
               }
-            } else if (currentSection === 'resultados-esperados' || currentSection === 'expected-results') {
+            } else if (currentSection === 'expected-results') {
               test.expectedResults.push(item.text.trim().replace(/^-\s*/, ''));
             } else if (currentSection === 'variables') {
               const variables = VariableParser.extractVariables(item.text);
@@ -58,30 +78,64 @@ export class MarkdownParser {
           }
         } else if (token.type === 'paragraph' && token.text) {
           const text = token.text.trim();
-          
-          if (currentSection === 'descripcin' || currentSection === 'description') {
+
+          // Handle variables in paragraph format (not list)
+          if (currentSection === 'variables') {
+            const variables = VariableParser.extractVariables(text);
+            test.variables = { ...test.variables, ...variables };
+          } else if (currentSection === 'description') {
             test.description = text;
-          } else if (currentSection.startsWith('url-de-prueba') || currentSection === 'url') {
-            const urlMatch = text.match(/https?:\/\/[^\s]+/);
-            if (urlMatch) {
-              test.url = urlMatch[0];
-            }
+          } else if (currentSection === 'url') {
+            // Capture the URL text first (may contain variables)
+            test.url = text;
           } else if (currentSection.startsWith('test')) {
             const titleMatch = text.match(/^test:\s*(.+)$/i);
             if (titleMatch) {
               test.title = titleMatch[1].trim();
             }
+          } else if (currentSection === 'metadata') {
+            if (text.startsWith('Version:')) {
+              metadata.version = text.replace('Version:', '').trim();
+            } else if (text.startsWith('Priority:')) {
+              metadata.priority = text.replace('Priority:', '').trim();
+            } else if (text.startsWith('Tags:')) {
+              metadata.tags = text.replace('Tags:', '').trim().split(',').map((t: string) => t.trim());
+            }
+          } else if (currentSection === 'precondition') {
+            test.precondition = text;
+          } else if (currentSection === 'postcondition') {
+            test.postcondition = text;
           }
+        } else if (token.type === 'code' && token.text) {
+          // Handle code blocks if needed
+        } else if (token.type === 'liststart') {
+          // Skip list start tokens
+        } else if (token.type === 'listend') {
+          // Skip list end tokens
+        } else if (token.type === 'blockquote') {
+          // Handle blockquotes if needed
         }
       }
+
+      if (isV0_2_0) {
+        test.metadata = metadata;
+      }
+
+      // Parse variables in URL and other fields
+      test.url = VariableParser.parse(test.url, test.variables);
+      test.description = VariableParser.parse(test.description, test.variables);
+      test.steps.forEach(step => {
+        step.description = VariableParser.parse(step.description, test.variables);
+      });
+      test.expectedResults = test.expectedResults.map(result =>
+        VariableParser.parse(result, test.variables)
+      );
 
       const validation = this.validateTest(test);
       if (!validation.valid) {
         throw new Error(`Invalid test format: ${validation.errors.map(e => e.message).join(', ')}`);
       }
 
-      test.url = VariableParser.parse(test.url, test.variables);
-      
       this.logger.debug(`Parsed test: ${test.title}`);
       return test;
     } catch (error) {

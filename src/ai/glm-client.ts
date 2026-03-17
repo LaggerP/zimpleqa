@@ -41,7 +41,7 @@ export class GLMClient {
           { role: 'user', content: userPrompt }
         ],
         temperature: 0.3,
-        max_tokens: 2000
+        max_tokens: 32000
       };
 
       const response = await this.axios.post<GLMResponse>('/chat/completions', request);
@@ -66,34 +66,60 @@ export class GLMClient {
   private generatePrompts(test: TestModel): { systemPrompt: string; userPrompt: string } {
     const systemPrompt = `Eres un experto en automatización de pruebas E2E con Playwright.
 
-Genera código TypeScript que automatice el test descuido.
+Genera código JavaScript que automatice el test descrito.
 
 REQUISITOS:
-1. Usa Playwright con TypeScript
-2. Importa: import { Page } from '@playwright/test';
-3. Exporta función async: export async function executeTest(page: Page)
-4. Usa selectores robustos (data-testid, role, text)
-5. Espera elementos antes de interactuar (await waitForSelector)
-6. Agrega assertions: expect().toBeVisible(), etc.
-7. Maneja errores con try-catch
-8. TIMEOUT: 30 segundos por acción
-9. Retorna: { success: boolean, steps: Array, error?: string }
+1. Usa Playwright con JavaScript (NO TypeScript)
+2. NO uses import statements
+3. Define función: async function executeTest(page) { }
+4. Usa selectores robustos (data-testid, role, text content)
+5. Espera elementos: page.waitForSelector(selector, { timeout: 30000 })
+6. Agrega assertions simples y directos
+7. Maneja errores con try-catch blocks
+8. TIMEOUT: 30000ms (30 segundos) por acción
+9. Log pasos: steps.push({ step: 'descripción', status: 'passed' })
+10. Retorna: { success: boolean, steps: Array, error?: string }
 
-IMPORTANTE:
-- Devuelve SOLO el código TypeScript
-- Sin comentarios ni explicaciones
-- Sin markdown formatting
-- Sin bloques de código (\`\`\`)`;
+ESTRUCTURA OBLIGATORIA:
+async function executeTest(page) {
+  const steps = [];
+  let success = false;
+  let error = null;
+
+  try {
+    // Tu código aquí
+    success = true;
+  } catch (e) {
+    success = false;
+    error = e.message;
+  }
+
+  return { success, steps, error };
+}
+
+REGLAS ESTRICTAS:
+- CÓDIGO JAVASCRIPT PURO (sin TypeScript)
+- SIN import statements
+- SIN comentarios explicativos
+- SIN bloques de markdown (\`\`\`)
+- SOLO el código de la función
+- Cada acción debe tener su step en el array
+- Todos los selectores deben ser específicos`;
 
     const userPrompt = `TEST: ${test.title}
 DESCRIPCIÓN: ${test.description}
 URL: ${test.url}
 
-PASOS:
+PASOS A IMPLEMENTAR:
 ${test.steps.map(s => `${s.number}. ${s.description}`).join('\n')}
 
 RESULTADOS ESPERADOS:
-${test.expectedResults.join('\n')}`;
+${test.expectedResults.map(r => `- ${r}`).join('\n')}
+
+CONTEXTADORES ADICIONALES:
+- URL target: ${test.url}
+- Cantidad de pasos: ${test.steps.length}
+- Timeout recomendado: 30000ms por paso`;
 
     return { systemPrompt, userPrompt };
   }

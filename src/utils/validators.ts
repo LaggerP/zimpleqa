@@ -40,10 +40,10 @@ export class Validators {
       return { valid: false, error: 'Generated code is empty' };
     }
 
-    if (!code.includes('export async function executeTest')) {
-      return { 
-        valid: false, 
-        error: 'Generated code must export an async function named executeTest' 
+    if (!code.includes('async function executeTest')) {
+      return {
+        valid: false,
+        error: 'Generated code must contain an async function named executeTest'
       };
     }
 
@@ -55,8 +55,27 @@ export class Validators {
       return { valid: false, error: 'Config is required' };
     }
 
-    if (!config.glm || !config.glm.apiKey) {
-      return { valid: false, error: 'GLM API key is required' };
+    const aiConfig = config.ai;
+    if (!aiConfig) {
+      return { valid: false, error: 'AI configuration is required' };
+    }
+
+    const providerType = aiConfig.provider;
+    const providerConfig = aiConfig[providerType];
+
+    if (!providerConfig) {
+      return {
+        valid: false,
+        error: `Configuration not found for provider: ${providerType}`
+      };
+    }
+
+    if (!providerConfig.apiKey) {
+      return {
+        valid: false,
+        error: `${providerType.toUpperCase()} API key is required. ` +
+               `Set it with: zqa config set ${providerType}.apiKey YOUR_KEY`
+      };
     }
 
     return { valid: true };

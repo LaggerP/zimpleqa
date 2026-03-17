@@ -1,0 +1,477 @@
+# Plan: zqa analyze - Herramienta de Testing Manual
+
+## Contexto
+
+zimpleQA es actualmente una herramienta de testing automatizado que ejecuta tests escritos en markdown usando Playwright + AI. El usuario quiere transformarla también en una herramienta de **testing manual** que analice automáticamente un proyecto frontend (React, Next.js, Vue) y genere casos de prueba manuales en formato markdown v0.2.0.
+
+**Problema actual:** Para crear tests manuales, el usuario debe escribir cada test desde cero o usar `zqa generate` que solo crea UN test de forma interactiva.
+
+**Solución:** Un comando `zqa analyze` que analice el codebase local, detecte funcionalidades, las priorice por criticidad, y genere múltiples test cases en markdown.
+
+## Arquitectura Objetivo
+
+```
+Usuario: zqa analyze
+    ↓
+CLI: Detecta proyecto, prepara contexto
+    ↓
+Skill: Analiza codebase, detecta features, genera ranking
+    ↓
+CLI: Muestra ranking, pide confirmación
+    ↓
+Generador: Crea N tests en formato v0.2.0
+    ↓
+Output: .zqa/tests/cases/*.md
+```
+
+## Componentes del Plan
+
+### 1. COMANDO CLI `analyze`
+
+**Archivo a crear:** `/Users/pablolagger/Personal/PAMI/zimpleQA/src/cli/commands/analyze.ts`
+
+**Responsabilidades:**
+- Detectar tipo de proyecto (Next.js, React Router, Vue)
+- Preparar contexto para la skill
+- Invocar skill de análisis
+- Mostrar ranking de funcionalidades
+- Pedir confirmación al usuario
+- Generar tests en formato v0.2.0
+- Guardar tests en `.zqa/tests/cases/`
+
+**Flujo principal:**
+```typescript
+export async function analyzeCommand(options: AnalyzeOptions): Promise<void> {
+  // 1. Cargar configuración
+  const configManager = new ConfigManager();
+  await configManager.load();
+
+  // 2. Detectar tipo de proyecto
+  const projectType = await detectProjectType(process.cwd());
+
+  // 3. Preparar contexto
+  const context = await prepareContext(projectType, process.cwd());
+
+  // 4. Invocar skill de análisis
+  const analysis = await invokeAnalysisSkill(context, configManager);
+
+  // 5. Mostrar ranking
+  displayRanking(analysis.features);
+
+  // 6. Pedir confirmación
+  const confirmed = await confirm('Generate tests?');
+
+  if (confirmed) {
+    // 7. Generar tests
+    await generateTests(analysis.features, options);
+
+    logger.success(`Generated ${analysis.features.length} test cases`);
+  }
+}
+```
+
+**Opciones de CLI:**
+```bash
+zqa analyze                      # Análisis interactivo
+zqa analyze --output custom/     # Directorio personalizado
+zqa analyze --force              # Sin confirmación
+zqa analyze --min-priority high  # Filtrar por prioridad
+```
+
+### 2. SKILL `analyze-frontend-project`
+
+**Archivo a crear:** `/Users/pablolagger/Personal/PAMI/zimpleQA/skills/analyze-frontend-project.md`
+
+**Propósito:** Analizar un proyecto frontend y generar casos de prueba manuales.
+
+**Input (desde CLI):**
+- Tipo de proyecto (Next.js, React, Vue)
+- Path del proyecto
+- Archivos de contexto a analizar
+
+**Output (hacia CLI):**
+```json
+{
+  "framework": "nextjs" | "react" | "vue",
+  "features": [
+    {
+      "name": "Authentication",
+      "type": "auth",
+      "priority": "high",
+      "routes": ["/login", "/register"],
+      "components": ["LoginForm", "RegisterForm"],
+      "confidence": 0.95
+    }
+  ],
+  "totalRoutes": 12,
+  "totalFeatures": 8
+}
+```
+
+**Pasos de la skill:**
+
+1. **Leer contexto del proyecto:**
+   - README.md, CLAUDE.md
+   - package.json (dependencias, scripts)
+   - Archivos de configuración (next.config.js, tsconfig.json, etc.)
+
+2. **Detectar framework:**
+   - Next.js: `app/`, `pages/`, `next.config.*`
+   - React Router: `react-router` en package.json, `<Routes>` en código
+   - Vue: `vue-router` en package.json, `.vue` files
+
+3. **Escanear estructura de rutas:**
+   - Next.js App Router: `app/**/page.tsx`
+   - Next.js Pages Router: `pages/*.tsx`
+   - React Router: archivos con `<Route path="...">`
+   - Vue Router: `router/index.ts`
+
+4. **Analizar componentes y funcionalidades:**
+   - Buscar patrones: `login`, `auth`, `form`, `checkout`, `payment`
+   - Analizar imports: `useAuth`, `useForm`, `stripe`, `paypal`
+   - Detectar componentes: `<Form>`, `<Button>`, `<Input>`
+
+5. **Clasificar por criticidad:**
+   ```javascript
+   const CRITICALITY = {
+     'auth': 'high',
+     'payment': 'high',
+     'checkout': 'high',
+     'form': 'medium',
+     'search': 'medium',
+     'static': 'low'
+   };
+   ```
+
+6. **Generar tests (markdown v0.2.0):**
+   - Por cada feature detectada
+   - Incluir metadata (version, priority, tags)
+   - Describir el flujo específico
+   - Steps realistas y accionables
+   - Expected results claros
+
+### 3. GENERADOR DE TESTS
+
+**Archivo a crear:** `/Users/pablolagger/Personal/PAMI/zimpleQA/src/generator/test-batch-generator.ts`
+
+**Responsabilidades:**
+- Generar markdown v0.2.0 por cada feature
+- Usar AI para generar pasos específicos
+- Aplicar template correctamente
+- Validar formato antes de guardar
+
+**Estructura de test generado:**
+```markdown
+# Test: [Feature Name]
+
+## Metadata
+Version: 0.2.0
+Author: [Generated by zimpleQA]
+Priority: high|medium|low
+Tags: [feature-type], auto-generated, manual
+
+## Description
+Test the [feature name] functionality including [key aspects].
+
+## URL
+[file://path/to/feature] or [URL if applicable]
+
+## Preconditions
+- User is [condition]
+- [Other preconditions]
+
+## Steps
+1. Navigate to [route]
+2. [Specific action]
+3. [Verification]
+...
+
+## Expected Results
+- [Expected outcome 1]
+- [Expected outcome 2]
+
+## Postconditions
+- [State after test]
+
+## Notes
+- [Additional context]
+```
+
+**Directorio de salida:**
+```
+.zqa/tests/cases/
+├── authentication-login-test.md         # HIGH
+├── authentication-register-test.md      # HIGH
+├── checkout-payment-test.md             # HIGH
+├── user-profile-test.md                 # MEDIUM
+├── search-functionality-test.md         # MEDIUM
+└── about-page-test.md                   # LOW
+```
+
+### 4. DETECTOR DE PROYECTO
+
+**Archivo a crear:** `/Users/pablolagger/Personal/PAMI/zimpleQA/src/analyzer/project-detector.ts`
+
+**Responsabilidades:**
+- Detectar tipo de framework
+- Identificar estructura de archivos
+- Retornar metadata del proyecto
+
+**Lógica de detección:**
+```typescript
+async function detectProjectType(cwd: string): Promise<ProjectType> {
+  // Check Next.js
+  if (await fileExists('app/page.tsx') || await fileExists('pages/index.tsx')) {
+    return 'nextjs';
+  }
+
+  // Check React Router
+  const pkgJson = await readJSON('package.json');
+  if (pkgJson.dependencies['react-router-dom']) {
+    return 'react';
+  }
+
+  // Check Vue
+  if (pkgJson.dependencies['vue-router']) {
+    return 'vue';
+  }
+
+  throw new Error('Unsupported framework');
+}
+```
+
+### 5. INTEGRACIÓN CLI
+
+**Archivo a modificar:** `/Users/pablolagger/Personal/PAMI/zimpleQA/src/cli/index.ts`
+
+**Cambios:**
+```typescript
+import { analyzeCommand } from './commands/analyze';
+
+program
+  .command('analyze')
+  .description('Analyze frontend project and generate manual test cases')
+  .option('-o, --output <dir>', 'Output directory', '.zqa/tests/cases')
+  .option('-f, --force', 'Skip confirmation')
+  .option('-p, --min-priority <level>', 'Minimum priority level')
+  .action(async (options) => {
+    try {
+      await analyzeCommand(options);
+    } catch (error) {
+      logger.error(`Analysis failed: ${error}`);
+      process.exit(1);
+    }
+  });
+```
+
+## Flujo de Usuario Completo
+
+```bash
+$ cd my-frontend-project
+
+$ zqa analyze
+
+🔍 Detecting project type...
+✓ Detected: Next.js with App Router
+
+📂 Scanning project structure...
+✓ Found 12 routes
+✓ Found 8 main components
+✓ Identified 10 features
+
+🤖 Analyzing features with AI...
+✓ Detected: Authentication (HIGH)
+✓ Detected: Checkout Process (HIGH)
+✓ Detected: Payment Gateway (HIGH)
+✓ Detected: User Profile (MEDIUM)
+✓ Detected: Search (MEDIUM)
+✓ Detected: Contact Form (MEDIUM)
+✓ Detected: About Page (LOW)
+✓ Detected: FAQ Page (LOW)
+
+📊 Feature Ranking:
+
+┌─────────────────────────┬──────────┬────────────┬──────────┐
+│ Feature                 │ Priority │ Routes     │ Confidence│
+├─────────────────────────┼──────────┼────────────┼──────────┤
+│ Authentication          │ HIGH     │ /login     │ 95%      │
+│ Checkout Process        │ HIGH     │ /checkout  │ 88%      │
+│ Payment Gateway         │ HIGH     │ /payment   │ 92%      │
+│ User Profile            │ MEDIUM   │ /profile   │ 85%      │
+│ Search Functionality    │ MEDIUM   │ /search    │ 78%      │
+│ Contact Form            │ MEDIUM   │ /contact   │ 90%      │
+│ About Page              │ LOW      │ /about     │ 95%      │
+│ FAQ Page                │ LOW      │ /faq       │ 95%      │
+└─────────────────────────┴──────────┴────────────┴──────────┘
+
+❓ Generate 8 test cases in .zqa/tests/cases/? (y/n): y
+
+🤖 Generating test cases...
+✓ Generated: authentication-login-test.md
+✓ Generated: authentication-register-test.md
+✓ Generated: checkout-process-test.md
+✓ Generated: payment-gateway-test.md
+✓ Generated: user-profile-test.md
+✓ Generated: search-functionality-test.md
+✓ Generated: contact-form-test.md
+✓ Generated: about-page-test.md
+
+✅ Done! Generated 8 test cases
+📁 Location: .zqa/tests/cases/
+📝 Next steps:
+   1. Review the tests: cat .zqa/tests/cases/*.md
+   2. Run tests: zqa run .zqa/tests/cases/
+   3. Or run specific test: zqa run .zqa/tests/cases/auth-login-test.md
+```
+
+## Archivos Críticos
+
+### Nuevos Archivos:
+
+1. `/Users/pablolagger/Personal/PAMI/zimpleQA/src/cli/commands/analyze.ts`
+   - Comando principal `zqa analyze`
+
+2. `/Users/pablolagger/Personal/PAMI/zimpleQA/skills/analyze-frontend-project.md`
+   - Skill de análisis de proyectos frontend
+
+3. `/Users/pablolagger/Personal/PAMI/zimpleQA/src/generator/test-batch-generator.ts`
+   - Generador de múltiples tests en markdown
+
+4. `/Users/pablolagger/Personal/PAMI/zimpleQA/src/analyzer/project-detector.ts`
+   - Detector de tipo de proyecto
+
+5. `/Users/pablolagger/Personal/PAMI/zimpleQA/src/analyzer/index.ts`
+   - Barrel export del módulo analyzer
+
+### Archivos a Modificar:
+
+1. `/Users/pablolagger/Personal/PAMI/zimpleQA/src/cli/index.ts`
+   - Registrar comando `analyze`
+
+### Archivos Reutilizables:
+
+1. `/Users/pablolagger/Personal/PAMI/zimpleQA/tests/template.md`
+   - Template v0.2.0 para formato de tests
+
+2. `/Users/pablolagger/Personal/PAMI/zimpleQA/src/ai/code-generator.ts`
+   - CodeGenerator para generación con AI
+
+3. `/Users/pablolagger/Personal/PAMI/zimpleQA/src/config/config-manager.ts`
+   - ConfigManager para carga de config
+
+4. `/Users/pablolagger/Personal/PAMI/zimpleQA/src/utils/file-helpers.ts`
+   - FileHelpers para operaciones de archivo
+
+## Estrategia de Implementación
+
+### Fase 1: Estructura Básica
+1. Crear comando `analyze` básico
+2. Implementar detector de proyecto
+3. Crear estructura de directorios `.zqa/tests/cases/`
+
+### Fase 2: Skill de Análisis
+1. Crear skill `analyze-frontend-project`
+2. Implementar detección de framework
+3. Implementar escaneo de rutas
+4. Implementar detección de features
+
+### Fase 3: Generación de Tests
+1. Crear generador de tests
+2. Implementar generación de markdown v0.2.0
+3. Integrar con CodeGenerator para pasos específicos
+
+### Fase 4: Integración CLI
+1. Conectar comando con skill
+2. Implementar display de ranking
+3. Implementar confirmación y generación
+
+### Fase 5: Testing y Validación
+1. Test con proyecto Next.js
+2. Test con proyecto React
+3. Test con proyecto Vue
+4. Validar formato de tests
+5. Validar integración con `zqa run`
+
+## Criterios de Éxito
+
+1. **Detección correcta:** Identifica framework y estructura
+2. **Features detectadas:** Encuentra funcionalidades principales
+3. **Ranking adecuado:** Prioridades por criticidad
+4. **Tests válidos:** Formato v0.2.0 correcto
+5. **Integración:** Tests compatibles con `zqa run`
+6. **UX clara:** Flujo intuitivo para el usuario
+
+## Casos de Prueba
+
+### Test 1: Proyecto Next.js
+```bash
+cd my-nextjs-app
+zqa analyze
+# Expected: Detecta App Router o Pages Router
+# Expected: Genera tests para /login, /checkout, etc.
+```
+
+### Test 2: Proyecto React
+```bash
+cd my-react-app
+zqa analyze
+# Expected: Detecta React Router
+# Expected: Genera tests para rutas principales
+```
+
+### Test 3: Proyecto Vue
+```bash
+cd my-vue-app
+zqa analyze
+# Expected: Detecta Vue Router
+# Expected: Genera tests para components principales
+```
+
+### Test 4: Validación de Output
+```bash
+zqa analyze
+cat .zqa/tests/cases/*.md
+# Expected: Tests en formato v0.2.0 válido
+# Expected: Metadata correcta
+# Expected: Steps accionables
+```
+
+## Notas de Implementación
+
+1. **AI Integration:** Reutilizar `CodeGenerator` para generar pasos basados en la feature
+2. **Error Handling:** Fallback a templates predefinidos si AI falla
+3. **Scalability:** Limitar escaneo a archivos relevantes
+4. **Caching:** Opcional, cachear resultados de análisis
+5. **Configuración:** Permitir customizar reglas de detección vía config
+
+## Roadmap
+
+### v1.0 (MVP - Este Plan)
+- ✅ Comando `zqa analyze`
+- ✅ Skill de análisis
+- ✅ Soporte: Next.js, React Router, Vue
+- ✅ Generación de tests en v0.2.0
+- ✅ Ranking por criticidad
+
+### v1.1 (Mejoras)
+- Soporte: Angular, Svelte
+- Análisis de API endpoints
+- Detección de edge cases
+- Tests negativos
+- Reportes de cobertura
+
+### v2.0 (Avanzado)
+- Análisis incremental (solo cambios)
+- Integración con `zqa run`
+- Dashboard web de resultados
+- Export a JIRA/Xray
+- Colaboración en equipo
+
+## Resumen
+
+Este plan transforma zimpleQA en una herramienta completa de testing:
+
+**Actual:** Tests automatizados con Playwright + AI
+**Futuro:** Tests automatizados + Tests manuales generados por AI
+
+El comando `zqa analyze` permite a cualquier equipo de QA generar casos de prueba manuales automáticamente basados en el análisis de su codebase, ahorrando horas de trabajo manual y asegurando cobertura de las funcionalidades críticas.

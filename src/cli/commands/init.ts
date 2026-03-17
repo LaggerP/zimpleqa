@@ -11,7 +11,7 @@ import { DEFAULT_CONFIG } from '../../config/default-config';
 export async function initCommand(): Promise<void> {
   const logger = new Logger();
 
-  logger.section('🚀 Inicializando zimpleQA');
+  logger.section('🚀 Initializing zimpleQA');
 
   const rootPath = process.cwd();
   const zqaPath = path.join(rootPath, '.zqa');
@@ -64,10 +64,10 @@ export async function initCommand(): Promise<void> {
     }
   }
 
-  logger.section('✅ Inicialización completada');
-  logger.info('Siguientes pasos:');
-  logger.info('  1. Configura tu API key de GLM: zqa config set glm.api_key <tu-api-key>');
-  logger.info('  2. Escribe tus tests en el directorio tests/');
-  logger.info('  3. Ejecuta tus tests: zqa run tests/');
-  logger.info('  4. Para más información: zqa --help');
+  logger.section('✅ Initialization completed');
+  logger.info('Next steps:');
+  logger.info('  1. Configure your Z.ai API key: zqa config set glm.apiKey <your-api-key>');
+  logger.info('  2. Write your tests in the tests/ directory');
+  logger.info('  3. Run your tests: zqa run tests/');
+  logger.info('  4. For more information: zqa --help');
 }
