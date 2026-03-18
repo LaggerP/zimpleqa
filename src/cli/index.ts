@@ -12,6 +12,7 @@ import { configCommand } from './commands/config';
 import { validateCommand } from './commands/validate';
 import { migrateCommand } from './commands/migrate';
 import { generateCommand } from './commands/generate';
+import { analyzeCommand } from './commands/analyze';
 
 const logger = new Logger();
 
@@ -84,6 +85,22 @@ program
       await generateCommand(options);
     } catch (error) {
       logger.error(`Failed to generate test: ${error}`);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('analyze')
+  .description('Analyze frontend project and generate manual test cases')
+  .option('-o, --output <dir>', 'Output directory', '.zqa/tests/cases')
+  .option('-f, --force', 'Skip confirmation')
+  .option('-p, --min-priority <level>', 'Minimum priority level (high, medium, low)')
+  .option('-V, --verbose', 'Verbose logging')
+  .action(async (options) => {
+    try {
+      await analyzeCommand(options);
+    } catch (error) {
+      logger.error(`Analysis failed: ${error}`);
       process.exit(1);
     }
   });
