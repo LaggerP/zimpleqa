@@ -1,395 +1,113 @@
-# zimpleQA v0.1.0
+# zimpleQA
 
-AI-powered QA testing tool using Playwright and GLM.
+zimpleQA turns your AI coding agent into a QA expert that scans your project, writes test cases, generates executable code, and tells you what's broken — all from a single prompt.
 
-## 🎯 Features
+E2E testing shouldn't be the thing that keeps getting pushed to "next sprint." zimpleQA makes it part of your regular workflow.
 
-- ✨ Write tests in natural language (Markdown)
-- 🤖 Generate TypeScript code automatically via GLM
-- 🎭 Execute tests with Playwright
-- 🔧 Support for variables ($\{VAR\})
-- 💻 Easy CLI interface
-- 🧪 Clean architecture following best practices
-- ⚡ Built with Bun for optimal performance
+Tests are written in plain markdown. Anyone on your team can read, review, and understand them.
 
-## 📦 Installation
+## Install
 
-### Quick Installation (Run from Source)
-
-1. Clone the repository:
 ```bash
-git clone https://github.com/your-org/zimpleqa.git
-cd zimpleqa
+npx skills add zimpleqa/zimpleQA
 ```
 
-2. Install dependencies:
-```bash
-bun install
-```
+Then tell your agent: *"generate E2E tests for this project"*
 
-3. Build the project:
-```bash
-bun run build
-```
+Or for a single flow: *"test the login"*
 
-### Using from Any Directory
+## How it works
 
-#### Option 1: Run directly with Node
-```bash
-node /path/to/zimpleqa/dist/cli/index.js <command>
-```
+zimpleQA guides the agent through a structured QA process:
 
-Example:
-```bash
-node F:/Codebase/AQUI/dist/cli/index.js init
-node F:/Codebase/AQUI/dist/cli/index.js run tests/
-```
+1. **Validates the environment** — checks that your app can actually be tested
+2. **Scans the codebase** — detects framework, routes, features, and backend architecture
+3. **Plans and writes tests** — generates self-contained markdown files with steps, expected results, and test data
+4. **Generates executable code** — translates markdown into Playwright, Cypress, or whatever your project uses (on demand)
+5. **Analyzes results** — tells you if a failure is a bug in your app or a problem in the test
+6. **Generates a report** — a single HTML file you can open and share
 
-#### Option 2: Create an alias (Recommended)
+The agent stops at key points to validate with you. It won't assume your login uses passwords if it actually uses magic links.
 
-**Windows PowerShell:**
-```powershell
-function zqa {
-    node F:/Codebase/AQUI/dist/cli/index.js $args
-}
-# Add to $PROFILE for permanent usage
-```
-
-**Linux/Mac:**
-```bash
-alias zqa='node /path/to/zimpleqa/dist/cli/index.js'
-# Add to ~/.bashrc or ~/.zshrc for permanent usage
-```
-
-#### Option 3: Create a wrapper script
-
-See [INSTALL.md](INSTALL.md) for detailed installation instructions.
-
-### Development mode
-```bash
-git clone <repository>
-cd zimpleqa
-bun install
-bun run install:browsers
-bun run build
-bun run dev
-```
-
-For detailed installation instructions, see [INSTALL.md](INSTALL.md).
-
-## 🚀 Quick Start
-
-### 1. Initialize project
-```bash
-zqa init
-```
-
-This creates:
-- `.zqa/` - Configuration directory
-- `.zqa/config.json` - Configuration file
-- `.zqa/generated/` - Generated code cache
-- `tests/` - Test files directory
-- `tests/test-template.md` - Test template
-
-### 2. Configure GLM API key
-```bash
-zqa config set glm.api_key <your-api-key>
-```
-
-Get your API key from [Zhipu AI](https://open.bigmodel.cn/).
-
-### 3. Write your test
-Create a new test file in `tests/` directory:
+## What a test looks like
 
 ```markdown
-# Test: Form validation
-
-## Description
-Test form validation
+# Test: Successful Login
 
 ## URL
-${BASE_URL}/contact
+http://localhost:3000/login
 
 ## Steps
-1. Navigate to contact page
-2. Leave name field empty
-3. Fill email with test@example.com
-4. Click submit button
-5. Verify error message appears
+1. Enter email in the 'Email' field
+2. Enter password in the 'Password' field
+3. Click the 'Sign in' button
+4. Wait for navigation to /dashboard
 
 ## Expected Results
-- Error message visible
-- Form not submitted
+- URL changes to /dashboard
+- Welcome message displays the user's name
 
-## Variables
-BASE_URL=https://example.com
+## Test Data
+
+### User: Maria Garcia
+- **Role**: user
+- **Email**: maria.garcia@testmail.com
+- **Password**: TestPass2024!
+- **Setup**: POST /api/auth/register { email, password, name }
+- **Teardown**: DELETE /api/users/:id
 ```
 
-### 4. Run your test
-```bash
-# Run single test
-zqa run tests/form-validation.md
+Every test includes what data it needs, how to create it, and how to clean it up. No mystery state, no shared fixtures, no "it works on my machine."
 
-# Run all tests in directory
-zqa run tests/
+## Output
 
-# With options
-zqa run tests/ --model glm-5 --validate --verbose
+```
+.zqa/
+├── tests/              # Markdown test definitions
+│   ├── auth/
+│   │   ├── login-success.md
+│   │   └── login-failure-invalid-credentials.md
+│   └── checkout/
+│       └── checkout-success.md
+├── generated/          # Executable code (1 file per test)
+├── screenshots/        # Captured on failure
+└── report.html         # Visual test report
 ```
 
-## 📚 CLI Commands
+## Pre-existing test credentials (optional)
 
-### `zqa init`
-Initialize zimpleQA in current directory.
-
-```bash
-zqa init
-```
-
-### `zqa config`
-Manage configuration.
-
-```bash
-# Show current configuration
-zqa config
-
-# Get specific value
-zqa config get glm.model
-
-# Set configuration value
-zqa config set glm.apiKey <your-key>
-zqa config set glm.model glm-4.7
-zqa config set glm.model glm-5
-zqa config set playwright.browser chromium
-zqa config set playwright.headless true
-zqa config set playwright.timeout 30000
-```
-
-### `zqa run <target>`
-Execute tests.
-
-```bash
-# Run single test file
-zqa run tests/test.md
-
-# Run all tests in directory
-zqa run tests/
-
-# Options
---model, -m <model>      GLM model (glm-4.7, glm-5) [default: glm-4.7]
---timeout, -t <seconds>  Timeout in seconds [default: 30]
---validate, -v           Validate generated code before execution
---verbose, -V             Verbose logging
-```
-
-## 📝 Test Format
-
-### Required sections:
-- `# Test: <Title>` - Test title
-- `## Description` - Brief description
-- `## URL` - URL to test (supports variables)
-- `## Steps` - Test steps (numbered list)
-- `## Expected Results` - Expected outcomes
-
-### Optional sections:
-- `## Variables` - Variable declarations
-
-### Example:
-```markdown
-# Test: Login validation
-
-## Description
-Verify login form validates required fields
-
-## URL
-${BASE_URL}/login
-
-## Steps
-1. Navigate to login page
-2. Leave username empty
-3. Leave password empty
-4. Click login button
-5. Verify error message appears
-
-## Expected Results
-- Error message visible: "Username and password are required"
-- Login attempt fails
-
-## Variables
-BASE_URL=https://example.com
-```
-
-## ⚙️ Configuration
-
-Configuration is stored in `.zqa/config.json`:
+If your project uses accounts that can't be created programmatically (external auth, staging accounts, etc.), you can provide them in `.zqa/credentials.json`:
 
 ```json
 {
-  "glm": {
-    "apiKey": "your-api-key",
-    "model": "glm-4.7",
-    "baseUrl": "https://open.bigmodel.cn/api/paas/v4/"
-  },
-  "playwright": {
-    "browser": "chromium",
-    "headless": true,
-    "timeout": 30000
-  },
-  "runner": {
-    "timeout": 30000
-  },
-  "test": {
-    "defaultTimeout": 30000
-  }
+  "users": [
+    {
+      "name": "Test User",
+      "role": "user",
+      "email": "test@empresa.com",
+      "password": "Pass123!",
+      "notes": "Standard user, already seeded"
+    }
+  ]
 }
 ```
 
-### Configuration options:
-- `glm.apiKey` - GLM API key (required)
-- `glm.model` - GLM model: glm-4.7 or glm-5
-- `glm.baseUrl` - GLM API base URL
-- `playwright.browser` - Browser: chromium, firefox, webkit
-- `playwright.headless` - Run browser headless: true/false
-- `playwright.timeout` - Timeout in milliseconds
-- `runner.timeout` - Runner timeout in milliseconds
+This file is optional. If it exists, zimpleQA uses these credentials instead of trying to create users. If it doesn't exist, the agent figures out how to create test data or asks you.
 
-## 🏗️ Architecture
+The file should be in `.gitignore` — it contains real credentials.
 
-```
-zimpleQA/
-├── src/
-│   ├── cli/           # CLI commands
-│   ├── ai/            # GLM integration
-│   ├── parser/        # Markdown parser
-│   ├── runner/        # Playwright runner
-│   ├── config/        # Configuration management
-│   ├── reporter/      # Terminal reporter
-│   └── utils/         # Utilities
-├── tests/             # Test files
-└── .zqa/              # Runtime directory
-```
+## Library agnostic
 
-## 🎯 Workflow
+Tests are written in markdown, not in code. The agent translates them to whatever testing library your project uses — or helps you pick one if you don't have one yet.
 
-1. **Write test** in Markdown
-2. **zimpleQA parses** Markdown
-3. **GLM generates** TypeScript code
-4. **Playwright executes** code
-5. **Results displayed** in terminal
+## Works with
 
-## 🔧 Development
+Claude Code, Cursor, Cline, GitHub Copilot, OpenCode, and any agent that supports skills.
 
-```bash
-# Install dependencies
-bun install
+## Scope
 
-# Install Playwright browsers
-bun run install:browsers
+zimpleQA focuses on UI and E2E testing — what users see and interact with in a browser or app. It complements your existing unit tests, API tests, and backend tests by covering the frontend layer.
 
-# Build TypeScript
-bun run build
+## License
 
-# Run in development mode
-bun run dev
-
-# Clean build and runtime files
-bun run clean
-```
-
-## 🐛 Troubleshooting
-
-### GLM API errors
-- Verify API key is set: `zqa config get glm.apiKey`
-- Check API key is valid: [Zhipu AI Console](https://open.bigmodel.cn/)
-- Ensure you have tokens available
-
-### Playwright errors
-- Install browsers: `bun run install:browsers`
-- Check browser is installed: `playwright install --help`
-- Try different browser: `zqa config set playwright.browser firefox`
-
-### Test execution failures
-- Use `--verbose` flag for detailed logs
-- Check test format matches requirements
-- Verify URL is accessible
-
-## 📝 Examples
-
-### Basic form test
-```bash
-zqa run tests/form-validation.md
-```
-
-### All tests with validation
-```bash
-zqa run tests/ --validate --verbose
-```
-
-### Using different GLM model
-```bash
-zqa run tests/ --model glm-5
-```
-
-## 🚧 Roadmap
-
-### v0.1.0 (Current - MVP)
-- ✅ CLI with init, config, run
-- ✅ Markdown parser with variables
-- ✅ GLM integration (glm-4.7, glm-5)
-- ✅ Playwright runner (sequential)
-- ✅ Terminal reporter
-- ✅ Configuration management
-- ✅ Bun runtime support
-
-### v0.2.0 (Planned)
-- Code caching
-- Parallel execution
-- Screenshots
-
-### v1.0.0 (Future)
-- HTML reporter
-- Historical tracking
-- Binary packaging
-- Mobile testing integration (agent-device)
-
-## 📄 License
-
-MIT License - see LICENSE file for details
-
-## 🤝 Contributing
-
-Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) before submitting PRs.
-
-## 📞 Support
-
-For issues and questions:
-- GitHub Issues: [Create issue](https://github.com/your-org/zimpleqa/issues)
-- Documentation: [Full docs](https://docs.zimpleqa.dev)
-- How to use from any folder: [COMO_USAR.md](COMO_USAR.md) (Español) | [USAGE_FROM_ANY_FOLDER.md](USAGE_FROM_ANY_FOLDER.md) (English)
-
-## 💡 Quick Start - Using from Any Folder
-
-To use zimpleQA from any folder without installation:
-
-```bash
-# Navigate to your project folder
-cd /path/to/your/project
-
-# Initialize zimpleQA
-node /path/to/zimpleqa/dist/cli/index.js init
-
-# Configure API key
-node /path/to/zimpleqa/dist/cli/index.js config set glm.apiKey your-api-key
-
-# Run tests
-node /path/to/zimpleqa/dist/cli/index.js run tests/
-```
-
-For creating aliases and more convenient usage, see [COMO_USAR.md](COMO_USAR.md).
-
-## 🙏 Acknowledgments
-
-- Playwright team for excellent testing framework
-- Zhipu AI (GLM) for AI capabilities
-- Bun team for blazing fast JavaScript runtime
-- agent-device team for mobile testing inspiration
+MIT
