@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# zimpleQA runtime directory
+.zqa/
+
+# Test credentials (contains real passwords)
+.zqa/credentials.json
+
+# Project skills (optional - can be committed if you3rd party skills are not used)
+# .agents/skills/
+
+# Logs
+*.log
+logs/
+
+# Environment variables
+.env
+.env.local
+
+# Claude Code
+.claude/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+.cache/
