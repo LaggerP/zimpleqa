@@ -1,15 +1,15 @@
-# zimpleQA
+# zimpleqa
 
-zimpleQA turns your AI coding agent into a QA expert that scans your project, writes test cases, generates executable code, and tells you what's broken — all from a single prompt.
+zimpleqa turns your AI coding agent into a QA expert that scans your project, writes test cases, generates executable code, and tells you what's broken — all from a single prompt.
 
-E2E testing shouldn't be the thing that keeps getting pushed to "next sprint." zimpleQA makes it part of your regular workflow.
+E2E testing shouldn't be the thing that keeps getting pushed to "next sprint." zimpleqa makes it part of your regular workflow.
 
 Tests are written in plain markdown. Anyone on your team can read, review, and understand them.
 
 ## Install
 
 ```bash
-npx skills add zimpleqa/zimpleQA
+npx skills add LaggerP/zimpleqa
 ```
 
 Then tell your agent: *"generate E2E tests for this project"*
@@ -18,7 +18,7 @@ Or for a single flow: *"test the login"*
 
 ## How it works
 
-zimpleQA guides the agent through a structured QA process:
+zimpleqa guides the agent through a structured QA process:
 
 1. **Validates the environment** — checks that your app can actually be tested
 2. **Scans the codebase** — detects framework, routes, features, and backend architecture
@@ -92,7 +92,7 @@ If your project uses accounts that can't be created programmatically (external a
 }
 ```
 
-This file is optional. If it exists, zimpleQA uses these credentials instead of trying to create users. If it doesn't exist, the agent figures out how to create test data or asks you.
+This file is optional. If it exists, zimpleqa uses these credentials instead of trying to create users. If it doesn't exist, the agent figures out how to create test data or asks you.
 
 The file should be in `.gitignore` — it contains real credentials.
 
@@ -106,7 +106,7 @@ Claude Code, Cursor, Cline, GitHub Copilot, OpenCode, and any agent that support
 
 ## Scope
 
-zimpleQA focuses on UI and E2E testing — what users see and interact with in a browser or app. It complements your existing unit tests, API tests, and backend tests by covering the frontend layer.
+zimpleqa focuses on UI and E2E testing — what users see and interact with in a browser or app. It complements your existing unit tests, API tests, and backend tests by covering the frontend layer.
 
 ## License
 

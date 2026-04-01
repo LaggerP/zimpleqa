@@ -4,7 +4,7 @@ node_modules/
 # Build output
 dist/
 
-# zimpleQA runtime directory
+# zimpleqa runtime directory
 .zqa/
 
 # Test credentials (contains real passwords)

@@ -1,11 +1,11 @@
-# zimpleQA
+# zimpleqa
 
 A QA expert skill that generates complete E2E test suites in markdown for any frontend project.
 
 ## Install
 
 ```bash
-npx skills add zimpleqa/zimpleQA
+npx skills add LaggerP/zimpleqa
 ```
 
 ## What it does

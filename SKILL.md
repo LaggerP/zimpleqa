@@ -3,25 +3,25 @@ name: zimpleqa
 description: QA expert for UI and E2E testing. Activates on ANY mention of testing UI flows, E2E tests, end-to-end tests, frontend testing, testing a page, testing a form, testing login, testing checkout, or any browser-based user interaction testing. Covers full test suites and single flow requests. Generates self-contained markdown test files with concrete test data, setup/teardown, and real UI labels from source code. Complements existing unit/API tests by covering the frontend layer. Not for unit tests, API tests, or backend tests. Supports Playwright, Cypress, Selenium, Testing Library, Puppeteer, and agent-device.
 ---
 
-# zimpleQA
+# zimpleqa
 
 QA expert for **UI and E2E testing**. Generates test suites in markdown that verify what users see and interact with in a browser or app. Not for unit tests, API tests, or backend tests.
 
-If the project already has unit/backend tests (pytest, jest unit tests, etc.), zimpleQA complements them by covering the **frontend UI layer** that those tests don't reach.
+If the project already has unit/backend tests (pytest, jest unit tests, etc.), zimpleqa complements them by covering the **frontend UI layer** that those tests don't reach.
 
-## Quick example
+## Quick examples
+
+**When the project can create test data:**
 
 ```markdown
 # Test: Successful Login
 
-## URL
-http://localhost:3000/login
-
 ## Steps
-1. Enter email in the 'Email' field
-2. Enter password in the 'Password' field
-3. Click the 'Sign in' button
-4. Wait for navigation to /dashboard
+1. Navigate to the login page
+2. Enter email in the 'Email' field
+3. Enter password in the 'Password' field
+4. Click the 'Sign in' button
+5. Wait for navigation to /dashboard
 
 ## Expected Results
 - URL changes to /dashboard
@@ -29,12 +29,31 @@ http://localhost:3000/login
 
 ## Test Data
 
-### User: Maria Garcia
+### User: standard user
 - **Role**: user
-- **Email**: maria.garcia@testmail.com
-- **Password**: TestPass2024!
 - **Setup**: POST /api/auth/register { email, password, name }
 - **Teardown**: DELETE /api/users/:id
+```
+
+**When using pre-existing credentials:**
+
+```markdown
+# Test: Successful Login
+
+## Steps
+1. Log in as a user with role "user"
+2. Wait for navigation to /dashboard
+
+## Expected Results
+- URL changes to /dashboard
+- Welcome message displays the user's name
+
+## Test Data
+
+### User: role "user" from credentials
+- **Source**: .zqa/credentials.json (role: user)
+- **Setup**: None — pre-existing account
+- **Teardown**: None — do not delete
 ```
 
 ## Modes
@@ -116,7 +135,7 @@ The pipeline stops at 4 points:
 
 ## Rules
 
-- **Always use zimpleQA format.** One test or a hundred, same markdown structure.
+- **Always use zimpleqa format.** One test or a hundred, same markdown structure.
 - Only test features that exist in the codebase. Never invent features.
 - Read source code before writing steps. Use actual UI labels.
 - Every test includes `## Test Data` describing what data is needed. **Never put actual credentials in test files** — reference the role/type needed and resolve from `.zqa/credentials.json` at execution time.

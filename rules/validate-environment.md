@@ -57,7 +57,7 @@ If found, check:
 
 ## Step 4: Check for existing tests
 
-Look for existing test infrastructure and previous zimpleQA tests in `.zqa/tests/`.
+Look for existing test infrastructure and previous zimpleqa tests in `.zqa/tests/`.
 
 If tests exist, ask:
 
@@ -65,7 +65,7 @@ If tests exist, ask:
 Found existing tests in this project.
 
   1 → Generate new tests alongside existing ones
-  2 → Update existing zimpleQA tests
+  2 → Update existing zimpleqa tests
   3 → Start fresh, replace .zqa/tests/
 
 What would you like?

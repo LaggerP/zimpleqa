@@ -1,6 +1,6 @@
 # Testing Libraries Reference
 
-Quick reference for selecting and using testing libraries with zimpleQA.
+Quick reference for selecting and using testing libraries with zimpleqa.
 
 ## When to use which library
 
@@ -33,9 +33,9 @@ What would you like?
 
 ## Selector equivalences
 
-How to translate zimpleQA step descriptions to selectors in each library:
+How to translate zimpleqa step descriptions to selectors in each library:
 
-| zimpleQA step | Playwright | Cypress | Selenium | agent-device |
+| zimpleqa step | Playwright | Cypress | Selenium | agent-device |
 |---|---|---|---|---|
 | "in the '[Label]' field" | `page.getByLabel('Label')` | `cy.contains('label', 'Label').find('input')` | `By.xpath("//label[text()='Label']/following::input")` | `fill @ref` |
 | "Click '[Text]' button" | `page.getByRole('button', { name: 'Text' })` | `cy.contains('button', 'Text')` | `By.xpath("//button[contains(text(),'Text')]")` | `press @ref` |
